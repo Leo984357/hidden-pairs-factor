@@ -227,12 +227,25 @@ RecognitionSpread 样本外略好于内，但 t 值 1.60 未达显著。
 
 信号在不同年份间高度不稳定，2023/2025 年 Breadth 转为负。
 
-#### 诊断结论
+### Phase 8：NeoData 两期对比 (2026-06-22)
 
-1. **Breadth 幸存 FM 全控制，但 OOS 崩塌** — 单截面 look-back bias 是项目当前最大问题
-2. **RecognitionSpread 相对最稳健** — 10 年中 7 年正 IC，OOS t=1.60 未显著但方向对
-3. **HiddenRatio 确认无正向预测力** — OOS 变负，Size 相关 0.60
-4. **多期 CSMAR FUN_PortfolioStock 数据是唯一出路** — 时变因子构建才能做真正的 OOS
+通过 NeoData 金融数据服务批量查询 200 只基金最新持仓（2026Q1），与 Excel 旧快照构建两期面板：
+
+| 指标 | Excel (旧, 8362基金) | NeoData (2026Q1, 155基金) |
+|------|---------------------|--------------------------|
+| 覆盖股票数 | 3,492 | 685 |
+| HiddenRatio 均值 | 0.821 (高度右偏) | 0.537 (更均匀) |
+| CoverageBreadth 均值 | 1.581 | 0.995 |
+
+**关键发现：HiddenRatio 跨期相关系数 r=0.017（≈零）**
+
+- 582 只重叠股票的 HiddenRank 排名完全重排
+- 310 只股票 |ΔHR| > 0.3（超过半数发生大幅变化）
+- CoverageBreadth 跨期 r=0.230（弱持续，大盘股相对稳定）
+- **结论：HiddenRatio 不是稳定因子特征值，随时间快速漂移**
+- ⚠️ 注意：两期基金池不同（8362 vs 155），绝对水平比较有偏；但排名相关性接近零是稳健结论
+
+**数据来源**：NeoData 金融数据服务（腾讯 copilot.neodata API）
 
 ---
 
@@ -281,6 +294,8 @@ hidden-pairs-factor/
 ├── final_experiments.py   # CoverageBreadth 专项诊断（9张子图）
 ├── composite_factors.py  # v0.3.0: 经济理论驱动复合因子（13规格）
 ├── tier1_diagnostics.py   # v0.3.1: Fama-MacBeth + OOS + 双分组诊断
+├── neodata_batch_query.py  # v0.3.2: NeoData 批量查询 200 基金最新持仓
+├── two_period_comparison.py # v0.3.2: 两期 HiddenRatio 对比
 ├── tests/
 │   └── test_factor_builder.py
 ├── examples/
@@ -288,10 +303,12 @@ hidden-pairs-factor/
 ├── results/
 │   ├── 20260618/          # 主要结果（因子审计、IC图、Tier1-2图表）
 │   ├── 20260619/          # Tier2-3 补充实验
-│   └── 20260622/          # 复合因子 + Tier1 诊断 (FM, OOS, 双分组)
+│   └── 20260622/          # 复合因子 + Tier1 诊断 + 两期对比 (FM, OOS, 双分组, NeoData)
 └── data/
     ├── 全部A股.xlsx
-    └── 全部基金(主代码).xlsx
+    ├── 全部基金(主代码).xlsx
+    ├── neodata_sample_funds.csv      # 200 只采样基金代码
+    └── neodata_current_holdings.csv # NeoData 最新持仓 (2068 条)
 ```
 
 ---
@@ -343,6 +360,7 @@ main_factor = main_factor.merge(
 | v0.2.1 | 2026-06-19 | 接入 CSMAR 真实收益率，完成 Tier1-3 全实验 |
 | v0.3.0 | 2026-06-22 | 经济理论驱动复合因子（13规格），RecognitionSpread IR=+0.97 t=+3.21 |
 | v0.3.1 | 2026-06-22 | Tier1 诊断：Fama-MacBeth + OOS 样本外检验，Breadth OOS 崩塌 t=0.60 |
+| v0.3.2 | 2026-06-22 | NeoData 两期对比：HiddenRatio 跨期 r≈0，因子值随时间完全重排 |
 
 ---
 
