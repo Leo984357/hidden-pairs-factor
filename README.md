@@ -116,10 +116,54 @@ StealthScore = ln(1 + hidden_count) × HiddenRatio
 **高波动子集是最强条件**：IR=0.94，t=3.11，正IC月比例 90.9%。
 信号集中在信息不对称更高的高波动股票中，符合"隐形共识"的经济逻辑。
 
-### Phase 5：因子合成与Tier3
+### Phase 5：初期复合因子（失败）
 
-CoverageBreadth 与 BM 的合成因子（Breadth+BM）IR=-0.38，合成后反而变差。
-BM（账面市值比）在本样本中本身为负向（IR=-0.96，t=-3.17），合成无法改善信号。
+CoverageBreadth 与 BM 的加法合成（Breadth+BM）IR=-0.38，合成后反而变差。
+BM 本身在本样本中为负向（IR=-0.96，t=-3.17），加法合成无法改善信号。
+**问题**：等权加法缺乏经济理论支撑。
+
+### Phase 6：经济理论驱动的复合因子（13个规格）
+
+基于以下理论重新设计复合因子：
+
+| 理论 | 来源 | 复合因子公式 | IC_IR | t |
+|------|------|-------------|-------|---|
+| 投资者认知假说 | Merton (1987) | VisibleBreadth = Breadth × (1-HiddenRatio) | **+0.853** | **+2.83\*\*** |
+| 基金经理信念 | Grinblatt-Titman / CP (2009) | ConvictionBreadth = Breadth × (1-HiddenRatio) | **+0.853** | **+2.83\*\*** |
+| 认知溢价差 | Merton + G-S 综合 | RecognitionSpread = Breadth × (1-2×HR) | **+0.967** | **+3.21\*\*\*** |
+| 套利限制 | Shleifer-Vishny (1997) | AsymBreadth = Breadth × VolRank | **+0.764** | **+2.53\*\*** |
+| 信息确认 | 基本面质量 | QualityBreadth = Breadth × ROARank | **+0.691** | **+2.29\*\*** |
+| 信息级联 | BHW (1992) | CascadeScore = Breadth × (1-HR) × MomRank | **+0.508** | **+1.69\*** |
+| 慢速扩散 | Hong-Stein (1999) | SlowDiffBreadth = Breadth × SizeInvRank | +0.099 | +0.33 |
+| 信息不对称 | Grossman-Stiglitz | StealthBreadth = Breadth × HiddenRatio | +0.025 | +0.08 |
+| 价值互动 | Fama-French | Breadth×Value = Breadth × BMRank | **-0.579** | -1.92\* |
+| 全因子交互 | 综合 | AllInteraction = B × BM × Size × Mom | -0.200 | -0.66 |
+
+**关键发现**：
+
+1. **🏆 RecognitionSpread（IR=+0.97, t=+3.21\*\*\*）是最佳单因子**
+   - 经济含义：高可见信念 vs 隐藏积累的差额
+   - 91% 年份 IC 为正，统计显著（1%水平）
+   - 验证了"隐藏持仓≠信息优势"的核心论点
+
+2. **VisibleBreadth / ConvictionBreadth（IR=+0.85, t=+2.83\*\*）是次优**
+   - VisibleBreadth_raw 的 82% 年份 IC 为正
+   - 经济解释：机构公开承诺持股 → 减税认知成本 → 正溢价
+   - 验证 Merton (1987) 和 Grinblatt-Titman (1989) 理论
+
+3. **AsymBreadth（IR=+0.76, t=+2.53\*\*）确认套利限制假说**
+   - 乘性交互（Breadth × Vol）比子集分组更严格
+   - 高波动 + 广覆盖 = 最不有效定价场景
+
+4. **"隐藏=信息"叙事被全面证伪**
+   - StealthBreadth IR=+0.03（零信号）
+   - Hidden×Value IR=-0.36（负信号）
+   - Hidden×Size IR=-0.14（弱负）
+   - 任何含 HiddenRatio 的成分都拖累表现
+
+5. **价值互动方向为负**：Breadth×Value IR=-0.58
+   - CoverageBreadth 在高 BM（价值股）中反而更差
+   - 暗示广覆盖在成长股中才是有效信号
 
 ---
 
@@ -129,7 +173,8 @@ BM（账面市值比）在本样本中本身为负向（IR=-0.96，t=-3.17），
 - StealthScore 在单截面场景下无预测力（IR≈0）
 - HiddenRatio 是反向因子（IR=-0.30），统计显著但方向为负，经济解释存疑
 - CoverageBreadth = ln(1+持股基金数) 有弱正信号，高波动子集中显著（IR=0.94）
-- 隐形持仓比例（HiddenRatio）本身不含正向信息，关键是覆盖广度
+- **复合因子中 RecognitionSpread 最优（IR=+0.97, t=+3.21），验证 Merton 认知假说**
+- 隐形持仓比例（HiddenRatio）本身不含正向信息，关键是覆盖广度 × 可见信念
 
 **根本局限**：
 1. **单截面数据**：仅一期持仓数据，用于11年时序回测存在 look-back bias
@@ -222,6 +267,7 @@ main_factor = main_factor.merge(
 | v0.1.0 | 2026-06-18 | 初始发布，HiddenRatio 原型 |
 | v0.2.0 | 2026-06-18 | StealthScore 重设计，修复6处 Bug |
 | v0.2.1 | 2026-06-19 | 接入 CSMAR 真实收益率，完成 Tier1-3 全实验 |
+| v0.3.0 | 2026-06-22 | 经济理论驱动复合因子（13规格），RecognitionSpread IR=+0.97 t=+3.21 |
 
 ---
 
