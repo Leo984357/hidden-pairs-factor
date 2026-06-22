@@ -52,6 +52,9 @@ htmlcov/
 __MACOSX/
 *~
 
+# 本地工具目录
+.workbuddy/
+
 # 数据文件（不提交原始数据）
 全部A股.xlsx
 全部基金(主代码).xlsx
