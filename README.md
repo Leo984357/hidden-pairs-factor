@@ -1,6 +1,6 @@
 # hidden-pairs-factor
 
-股票视角隐形重仓对因子挖掘项目 · v0.2.0
+股票视角隐形重仓对因子挖掘项目 · v0.3.1
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -165,24 +165,95 @@ BM 本身在本样本中为负向（IR=-0.96，t=-3.17），加法合成无法�
    - CoverageBreadth 在高 BM（价值股）中反而更差
    - 暗示广覆盖在成长股中才是有效信号
 
+### Phase 7：Tier 1 诊断 — 因子验证 (2026-06-22)
+
+对 RecognitionSpread / Breadth / HiddenRatio 做 Fama-MacBeth + 样本外检验：
+
+#### Fama-MacBeth 横截面回归
+
+| 模型 | Breadth t | RecogSpread t | BM | Mom | Vol |
+|------|-----------|---------------|-----|-----|-----|
+| 单因子 | 3.30 | 1.00 | - | - | - |
+| +Size+BM | 2.65 | - | ✓ | - | - |
+| 全控制 (Size+BM+Mom+Vol) | **3.16** | 1.70 | ✓ | ✓ | ✓ |
+
+Breadth 幸存所有控制变量 (t=3.16)。RecogSpread 边际显著 (t=1.70)。
+
+#### 因子相关性（关键指标）
+
+| 配对 | 相关系数 |
+|------|----------|
+| HiddenRatio ↔ Size(ln) | **0.60** 🔴 |
+| RecogSpread ↔ Size(ln) | **0.47** 🔴 |
+| Breadth ↔ Size(ln) | 0.19 |
+
+**Size proxy 警告**：HiddenRatio 和 RecogSpread 与市值中度相关，可能部分是市值 proxy。
+
+#### 双变量分组：Size × Breadth
+
+Breadth 溢价在所有5个市值分位均正向，且在大盘中最强：
+
+| Size 分位 | Breadth 溢价 (T3-T1) |
+|-----------|---------------------|
+| Q1 (最小盘) | 0.07%/月 |
+| Q5 (最大盘) | **1.23%/月** |
+
+#### 🚨 样本外切分：2015-2020 train → 2021-2025 test
+
+| 因子 | 样本内 IC | 样本内 t | **样本外 IC** | **样本外 t** |
+|------|-----------|----------|--------------|-------------|
+| Breadth | 0.068 | 4.72 | **0.010** | **0.60** 🔴 |
+| RecognitionSpread | 0.003 | 0.44 | 0.014 | 1.60 |
+| HiddenRatio | 0.031 | 2.83 | **-0.007** | **-0.54** 🔴 |
+
+**Breadth 信号在样本外完全坍塌**（IC 从 6.8% 掉到 1.0%，t 从 4.72 掉到 0.60）。  
+**HiddenRatio 样本外变号**（正→负）。  
+RecognitionSpread 样本外略好于内，但 t 值 1.60 未达显著。
+
+#### 逐年 IC（全样本）
+
+| 年 | Breadth | HiddenRatio | RecogSpread | Size |
+|----|---------|-------------|-------------|------|
+| 2016 | +0.016 | -0.021 | +0.027 | +0.005 |
+| 2017 | +0.143 | +0.092 | -0.023 | +0.185 |
+| 2018 | +0.043 | +0.028 | -0.006 | +0.065 |
+| 2019 | +0.066 | +0.035 | +0.000 | +0.070 |
+| 2020 | +0.072 | +0.023 | +0.016 | +0.073 |
+| 2021 | +0.005 | -0.003 | +0.010 | -0.004 |
+| 2022 | +0.013 | -0.004 | +0.016 | +0.010 |
+| 2023 | -0.021 | -0.027 | +0.007 | -0.036 |
+| 2024 | +0.077 | +0.045 | +0.009 | +0.102 |
+| 2025 | -0.025 | -0.046 | +0.027 | -0.073 |
+
+信号在不同年份间高度不稳定，2023/2025 年 Breadth 转为负。
+
+#### 诊断结论
+
+1. **Breadth 幸存 FM 全控制，但 OOS 崩塌** — 单截面 look-back bias 是项目当前最大问题
+2. **RecognitionSpread 相对最稳健** — 10 年中 7 年正 IC，OOS t=1.60 未显著但方向对
+3. **HiddenRatio 确认无正向预测力** — OOS 变负，Size 相关 0.60
+4. **多期 CSMAR FUN_PortfolioStock 数据是唯一出路** — 时变因子构建才能做真正的 OOS
+
 ---
 
 ## 结论与局限
 
-**核心发现**：
+**核心发现**（v0.3.1 最终更新）：
 - StealthScore 在单截面场景下无预测力（IR≈0）
 - HiddenRatio 是反向因子（IR=-0.30），统计显著但方向为负，经济解释存疑
 - CoverageBreadth = ln(1+持股基金数) 有弱正信号，高波动子集中显著（IR=0.94）
-- **复合因子中 RecognitionSpread 最优（IR=+0.97, t=+3.21），验证 Merton 认知假说**
-- 隐形持仓比例（HiddenRatio）本身不含正向信息，关键是覆盖广度 × 可见信念
+- RecognitionSpread（全样本 IR=+0.97）→ **OOS 检验后降至 t=1.60，未达显著**
+- Breadth 在 FM 全控制中幸存 (t=3.16)，但 **OOS IC 从 6.8% 崩塌到 1.0%** (t=0.60)
+- HiddenRatio ↔ Size 相关 0.60，存在显著市值 proxy 问题
 
 **根本局限**：
 1. **单截面数据**：仅一期持仓数据，用于11年时序回测存在 look-back bias
-2. **需要 CSMAR FUN_PortfolioStock**：多期基金季报数据才能消除此问题
-3. **因果识别**：无政策冲击工具变量，DID 不可行
+2. **OOS 崩溃**：Breadth/HiddenRatio 全样本的好成绩在样本外无法复现
+3. **需要 CSMAR FUN_PortfolioStock**：多期基金季报数据是唯一出路
+4. **因果识别**：无政策冲击工具变量，DID 不可行
 
 **下一步**（待数据）：
-- [ ] 接入 CSMAR FUN_PortfolioStock 多期季报，构建时序面板
+- [ ] 接入 CSMAR FUN_PortfolioStock 多期季报，构建时序面板因子
 - [ ] 时序 IC 序列的稳健性验证
 - [ ] 与 QMT 因子池相关性分析（排除市值/动量/波动率 proxy）
 - [ ] 针对高波动子集做专项回测
@@ -208,13 +279,16 @@ hidden-pairs-factor/
 ├── tier1_robustness.py    # Tier1 独立稳健性脚本
 ├── tier2_3_remaining.py   # Tier2 剩余+Tier3（信息不对称、宏观周期、因子合成）
 ├── final_experiments.py   # CoverageBreadth 专项诊断（9张子图）
+├── composite_factors.py  # v0.3.0: 经济理论驱动复合因子（13规格）
+├── tier1_diagnostics.py   # v0.3.1: Fama-MacBeth + OOS + 双分组诊断
 ├── tests/
 │   └── test_factor_builder.py
 ├── examples/
 │   └── run_factor.py
 ├── results/
 │   ├── 20260618/          # 主要结果（因子审计、IC图、Tier1-2图表）
-│   └── 20260619/          # Tier2-3 补充实验
+│   ├── 20260619/          # Tier2-3 补充实验
+│   └── 20260622/          # 复合因子 + Tier1 诊断 (FM, OOS, 双分组)
 └── data/
     ├── 全部A股.xlsx
     └── 全部基金(主代码).xlsx
@@ -268,6 +342,7 @@ main_factor = main_factor.merge(
 | v0.2.0 | 2026-06-18 | StealthScore 重设计，修复6处 Bug |
 | v0.2.1 | 2026-06-19 | 接入 CSMAR 真实收益率，完成 Tier1-3 全实验 |
 | v0.3.0 | 2026-06-22 | 经济理论驱动复合因子（13规格），RecognitionSpread IR=+0.97 t=+3.21 |
+| v0.3.1 | 2026-06-22 | Tier1 诊断：Fama-MacBeth + OOS 样本外检验，Breadth OOS 崩塌 t=0.60 |
 
 ---
 
